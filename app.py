@@ -1,14 +1,17 @@
 from flask import Flask, request, jsonify
 from flask_pymongo import PyMongo
 from flask_executor import Executor
+from flask_cors import CORS
 from models import Job
 from os import environ as env
 from bson import ObjectId
 import time
+from pymongo import ASCENDING
 
 mongohost = env.get("MONGO_HOST", "localhost")
 
 app = Flask(__name__)
+CORS(app)
 app.config['EXECUTOR_PROPAGATE_EXCEPTIONS'] = True
 app.config["MONGO_URI"] = f"mongodb://{mongohost}:27017/mydatabase"
 
@@ -37,7 +40,7 @@ def init():
     nodo = mongo.db.nodos.find_one_or_404({"n": json["n"]})
     mongo.db.nodos.update_one({"_id": nodo["_id"]}, {"$set": {"s": json["s"]}})
 
-    nodo = mongo.db.nodos.find_one_or_404({"n": json["n"]})
+    nodo = mongo.db.nodos.find_one_or_404({"n": json["n"]}, {"_id": 0})
 
     
     return jsonify(nodo)
@@ -117,6 +120,22 @@ def stop_job(job_id):
     mongo.db.jobs.update_one({"_id": ObjectId(job_id)}, {"$set": {"a": 0}})
     return {'message': 'Job detenido exitosamente'}, 200
 
+# Rutas de Eventos/lecturas
+
+@app.route('/lecturas/node/<node>/start/<start>/pag/<pag>/<size>', methods=['GET'])
+def get_lecturas(node, start, pag, size):
+    # Calculate the number of documents to skip
+    skip_documents = (int(pag) - 1) * int(size)
+
+    # Create the query filter
+    query = {
+        'st': int(start)
+    }
+
+    # Retrieve the documents
+    result = mongo.db[f'lecturas{node}'].find(query, {"_id":0}).sort("tm", ASCENDING).skip(skip_documents).limit(int(size))
+    
+    return jsonify(list(result))
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=8080)
