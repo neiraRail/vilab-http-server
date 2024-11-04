@@ -171,6 +171,18 @@ def stop_job(job_id):
     mongo.db.jobs.update_one({"_id": ObjectId(job_id)}, {"$set": {"a": 0}})
     return {'message': 'Job detenido exitosamente'}, 200
 
+
+# get jobruns on path "/jobrun/<jobid>"
+@app.route('/jobrun/<job_id>', methods=['GET'])
+def get_jobruns(job_id):
+    jobruns = mongo.db.jobruns.find({"j": ObjectId(job_id)})
+    result = []
+    for jobrun in jobruns:
+        jobrun["_id"] = str(jobrun["_id"])
+        jobrun["j"] = str(jobrun["j"])
+        result.append(jobrun)
+    return jsonify(result)
+
 # Rutas de Eventos/lecturas
 
 @app.route('/lecturas/node/<node>/start/<start>/pag/<pag>/<size>', methods=['GET'])
