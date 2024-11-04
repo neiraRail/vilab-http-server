@@ -183,6 +183,19 @@ def get_jobruns(job_id):
         result.append(jobrun)
     return jsonify(result)
 
+# get measures on path "/measure/<jobrunid>"
+@app.route('/measure/<jobrun_id>', methods=['GET'])
+def get_measures(jobrun_id):
+    measures = mongo.db.measures.find({"j": ObjectId(jobrun_id)})
+    result = []
+    for measure in measures:
+        measure["_id"] = str(measure["_id"])
+        measure["j"] = str(measure["j"])
+        measure["si"] = str(measure["si"])
+        measure["so"] = str(measure["so"])
+        result.append(measure)
+    return jsonify(result)
+
 # Rutas de Eventos/lecturas
 
 @app.route('/lecturas/node/<node>/start/<start>/pag/<pag>/<size>', methods=['GET'])
