@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/neira/Desktop/vibLab/Versi%C3%B3n%202%20punto%200/ml-server/mlruns/0/5ee271ef4a174852be3e2898fe343cba/artifacts
+end_time: 1731292690323
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 5ee271ef4a174852be3e2898fe343cba
+run_name: fun-donkey-727
+run_uuid: 5ee271ef4a174852be3e2898fe343cba
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1731292690203
+status: 3
+tags: []
+user_id: neira

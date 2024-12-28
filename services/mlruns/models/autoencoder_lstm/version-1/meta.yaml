@@ -1,0 +1,14 @@
+aliases: []
+creation_timestamp: 1731294231798
+current_stage: None
+description: null
+last_updated_timestamp: 1731294231798
+name: autoencoder_lstm
+run_id: 0a374610f00f4f80ad9bfc19aa0191e3
+run_link: null
+source: file:///C:/Users/neira/Desktop/vibLab/Versi%C3%B3n%202%20punto%200/ml-server/mlruns/0/0a374610f00f4f80ad9bfc19aa0191e3/artifacts/autoencoder
+status: READY
+status_message: null
+storage_location: file:///C:/Users/neira/Desktop/vibLab/Versi%C3%B3n%202%20punto%200/ml-server/mlruns/0/0a374610f00f4f80ad9bfc19aa0191e3/artifacts/autoencoder
+user_id: null
+version: 1

@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/neira/Desktop/vibLab/Versi%C3%B3n%202%20punto%200/ml-server/mlruns/0/7d84f5ff81274e628fc8455f20e4977d/artifacts
+end_time: 1731292934422
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 7d84f5ff81274e628fc8455f20e4977d
+run_name: unique-stag-49
+run_uuid: 7d84f5ff81274e628fc8455f20e4977d
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1731292926954
+status: 3
+tags: []
+user_id: neira

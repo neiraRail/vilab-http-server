@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/neira/Desktop/vibLab/Versi%C3%B3n%202%20punto%200/ml-server/mlruns/0/9d2415f950204594ad74df689f5d3035/artifacts
+end_time: 1731291899077
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 9d2415f950204594ad74df689f5d3035
+run_name: powerful-croc-552
+run_uuid: 9d2415f950204594ad74df689f5d3035
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1731291898979
+status: 3
+tags: []
+user_id: neira

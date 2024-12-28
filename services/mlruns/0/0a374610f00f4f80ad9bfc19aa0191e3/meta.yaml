@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/neira/Desktop/vibLab/Versi%C3%B3n%202%20punto%200/ml-server/mlruns/0/0a374610f00f4f80ad9bfc19aa0191e3/artifacts
+end_time: 1731294231816
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 0a374610f00f4f80ad9bfc19aa0191e3
+run_name: delightful-rat-569
+run_uuid: 0a374610f00f4f80ad9bfc19aa0191e3
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1731294226047
+status: 3
+tags: []
+user_id: neira

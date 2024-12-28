@@ -1,0 +1,14 @@
+aliases: []
+creation_timestamp: 1731292934385
+current_stage: None
+description: null
+last_updated_timestamp: 1731292934385
+name: classifier
+run_id: 7d84f5ff81274e628fc8455f20e4977d
+run_link: null
+source: file:///C:/Users/neira/Desktop/vibLab/Versi%C3%B3n%202%20punto%200/ml-server/mlruns/0/7d84f5ff81274e628fc8455f20e4977d/artifacts/model
+status: READY
+status_message: null
+storage_location: file:///C:/Users/neira/Desktop/vibLab/Versi%C3%B3n%202%20punto%200/ml-server/mlruns/0/7d84f5ff81274e628fc8455f20e4977d/artifacts/model
+user_id: null
+version: 1
