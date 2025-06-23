@@ -1,4 +1,24 @@
 class Job:
+    """Representa un trabajo de medición.
+
+    Parameters
+    ----------
+    node : int
+        Identificador del nodo.
+    num_mediciones : int
+        Número de mediciones a realizar. Un valor ``-1`` indica que el
+        trabajo no tiene un número máximo de mediciones (ejecución
+        indefinida).
+    tiempo : int
+        Duración de cada medición en segundos.
+    delay : int
+        Tiempo de espera entre mediciones.
+    active : int
+        Flag que indica si el job está activo.
+    ai_active : int
+        Flag que indica si se ejecuta análisis IA después de cada medición.
+    """
+
     def __init__(self, node, num_mediciones, tiempo, delay, active, ai_active):
         self.n = node
         self.nm = num_mediciones

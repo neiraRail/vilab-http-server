@@ -87,11 +87,16 @@ def run_job(job):
     # Create jobrun in mongodb
     jobrun = JobRun(job, time.time())
     jobrun_id = mongo.db.jobruns.insert_one(vars(jobrun)).inserted_id
-
-    for i in range(job["nm"]):
-        # Consultar si el job sigue activo (para detectar detención por medio externo)
+    i = 0
+    # Si nm_limit es -1 el trabajo no tiene un número máximo de mediciones
+    nm_limit = job.get("nm")
+    while True:
+        # Verificar si el job sigue activo
         active = mongo.db.jobs.find_one({"_id": job["_id"]}, {"a": 1, "_id": 0})["a"]
         if active != 1:
+            break
+        # Verificar límite de mediciones si existe
+        if nm_limit != -1 and i >= nm_limit:
             break
 
         # Crear elemento medición en la base de datos
@@ -108,25 +113,26 @@ def run_job(job):
         mongo.db.measures.update_one({"_id": measure_id}, {"$set": {"si": stamp_in}})
         measure.si = stamp_in
 
-        # Loop principal del job
-        encender_nodo(job["n"])
-        time.sleep(job["t"])
-        apagar_nodo(job["n"])
+        try:
+            # Loop principal del job
+            encender_nodo(job["n"])
+            time.sleep(job["t"])
+        finally:
+            # Asegurar apagado del nodo y registro de stamp_out
+            apagar_nodo(job["n"])
+            marca = Marca(time.time(), f"Fin medición {i} del jobrun {jobrun_id}")
+            stamp_out = (
+                mongo_inercial.db[f"lecturas{job['n']}"].insert_one(vars(marca)).inserted_id
+            )
+            mongo.db.measures.update_one({"_id": measure_id}, {"$set": {"so": stamp_out}})
+            measure.so = stamp_out
+
+            # llamada a servicio de análisis
+            if job["ai"] == 1:
+                executor.submit(run_analysis, job, jobrun_id, measure, measure_id)
+
         time.sleep(job["d"])
-
-        # Ingresar marca para obtener stamp_out
-        marca = Marca(time.time(), f"Fin medición {i} del jobrun {jobrun_id}")
-        stamp_out = (
-            mongo_inercial.db[f"lecturas{job['n']}"].insert_one(vars(marca)).inserted_id
-        )
-
-        # Actualizar el elemento de medición con el stamp_out
-        mongo.db.measures.update_one({"_id": measure_id}, {"$set": {"so": stamp_out}})
-        measure.so = stamp_out
-
-        # llamada a servicio de análisis
-        if job["ai"] == 1:
-            executor.submit(run_analysis, job, jobrun_id, measure, measure_id)
+        i += 1
 
     mongo.db.jobs.update_one({"_id": job["_id"]}, {"$set": {"a": 0}})
 
@@ -146,7 +152,8 @@ def get_jobs():
 def create_job():
     data = request.json
     try:
-        job = Job(data["n"], data["nm"], data["t"], data["d"], 0, data["ai"])
+        # "nm" debe ser -1 para indicar un job indefinido
+        job = Job(data["n"], data.get("nm"), data["t"], data["d"], 0, data["ai"])
         job_id = mongo.db.jobs.insert_one(vars(job)).inserted_id
     except KeyError as e:
         return {"error": f"Falta el campo {e}"}, 400
