@@ -32,3 +32,28 @@ def run_inference(data, model=None):
 
 
     return pred.item()
+
+
+
+def run_classification(data, model=None, scaler=None):
+    """ 
+    Clasificar un vector de datos.
+        data (numpy): Vector de datos a clasificar en formato numpy.
+        model (str): Path del modelo en mlflow.
+        scaler (str): Path del scaler en mlflow
+    """
+    if not model:
+        raise ValueError("Model path must be provided")
+
+
+    classifier = mlflow.load_model(model)
+    classifier.eval()
+
+    if scaler:
+        data = scaler.transform(data)
+
+
+    # Apply classifier
+    pred = classifier(data)
+
+    return pred
