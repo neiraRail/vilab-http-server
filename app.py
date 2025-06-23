@@ -127,9 +127,11 @@ def run_job(job):
             mongo.db.measures.update_one({"_id": measure_id}, {"$set": {"so": stamp_out}})
             measure.so = stamp_out
 
-            # llamada a servicio de análisis
-            if job["ai"] == 1:
-                executor.submit(run_analysis, job, jobrun_id, measure, measure_id)
+            # llamada a servicios de IA dependiendo de las flags
+            if job.get("ai_monitoreo", 0) == 1:
+                executor.submit(run_monitoring, job, jobrun_id, measure, measure_id)
+            if job.get("ai_aprendizaje", 0) == 1:
+                executor.submit(run_learning, job, jobrun_id, measure, measure_id)
 
         time.sleep(job["d"])
         i += 1
@@ -153,7 +155,15 @@ def create_job():
     data = request.json
     try:
         # "nm" debe ser -1 para indicar un job indefinido
-        job = Job(data["n"], data.get("nm"), data["t"], data["d"], 0, data["ai"])
+        job = Job(
+            data["n"],
+            data.get("nm"),
+            data["t"],
+            data["d"],
+            0,
+            data.get("ai_monitoreo", 0),
+            data.get("ai_aprendizaje", 0),
+        )
         job_id = mongo.db.jobs.insert_one(vars(job)).inserted_id
     except KeyError as e:
         return {"error": f"Falta el campo {e}"}, 400
@@ -263,7 +273,7 @@ def get_lecturas(node, start, pag, size):
 # Rutas de Análisis
 
 
-def run_analysis(job, jobrun_id, measure, measure_id):
+def run_monitoring(job, jobrun_id, measure, measure_id):
     print("El id del job es: ", job["_id"])
     print("El id del jobrun es: ", jobrun_id)
     print("Los datos provienen del nodo: ", job["n"])
@@ -280,6 +290,12 @@ def run_analysis(job, jobrun_id, measure, measure_id):
 
     # Insertar análisis en la measure
     mongo.db.measures.update_one({"_id": measure_id}, {"$set": {"ai": str(analisis)}})
+
+
+def run_learning(job, jobrun_id, measure, measure_id):
+    """Proceso de aprendizaje basado en IA (placeholder)."""
+    print("Proceso de aprendizaje para el job", job["_id"])
+    # Aquí se ejecutaría la lógica de aprendizaje en el futuro
 
 
 if __name__ == "__main__":
