@@ -15,17 +15,23 @@ class Job:
         Tiempo de espera entre mediciones.
     active : int
         Flag que indica si el job está activo.
-    ai_active : int
-        Flag que indica si se ejecuta análisis IA después de cada medición.
+    ai_monitoreo : int
+        Flag que indica si se ejecuta el proceso de monitoreo basado en IA
+        después de cada medición.
+    ai_aprendizaje : int
+        Flag que indica si se ejecuta el proceso de aprendizaje basado en IA
+        después de cada medición.
     """
 
-    def __init__(self, node, num_mediciones, tiempo, delay, active, ai_active):
+    def __init__(self, node, num_mediciones, tiempo, delay, active,
+                 ai_monitoreo, ai_aprendizaje):
         self.n = node
         self.nm = num_mediciones
         self.t = tiempo
         self.d = delay
         self.a = active
-        self.ai = ai_active
+        self.ai_monitoreo = ai_monitoreo
+        self.ai_aprendizaje = ai_aprendizaje
 
 class JobRun:
     def __init__(self, job, dt):
