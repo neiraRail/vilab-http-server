@@ -261,7 +261,7 @@ def run_analysis(job, jobrun_id, measure, measure_id):
     print("El id del jobrun es: ", jobrun_id)
     print("Los datos provienen del nodo: ", job["n"])
     print("Las mediciones tienen una duración de: ", job["t"])
-    print(f"Se realizan mediciones cada {(job["t"] + job["d"])} segundos")
+    print(f'Se realizan mediciones cada {(job["t"] + job["d"])} segundos')
     # Obtener datos para ejecutar análisis
     datos_segmento = (
         mongo_inercial.db[f'lecturas{job["n"]}']
