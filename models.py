@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class Job:
     """Representa un trabajo de medición.
 
@@ -56,3 +59,16 @@ class Marca:
     def __init__(self, timestamp, descripcion):
         self.timestamp = timestamp
         self.descripcion = descripcion
+
+
+class FeatureVector:
+    """Representa el vector de características asociado a una medición.
+
+    Para almacenar ``vector`` en MongoDB se recomienda serializarlo a una
+    lista mediante ``numpy.ndarray.tolist``. Esto mantiene la compatibilidad
+    con BSON y permite reconstruir el arreglo original al leerlo.
+    """
+
+    def __init__(self, measure_id, vector):
+        self.m = measure_id
+        self.v = vector.tolist() if isinstance(vector, np.ndarray) else list(vector)
