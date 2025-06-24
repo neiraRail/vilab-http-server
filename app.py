@@ -2,11 +2,11 @@ from flask import Flask, request, jsonify
 from flask_pymongo import PyMongo
 from flask_executor import Executor
 from flask_cors import CORS
-from models import Job, JobRun, Measure, Marca
+from models import Job, JobRun, Measure, Marca, FeatureVector
 from os import environ as env
 from bson import ObjectId
 import time
-from services import inference_service
+from services import inference_service, feature_engineering
 from pymongo import ASCENDING
 
 mongohost = env.get("MONGO_HOST", "localhost")
@@ -280,11 +280,16 @@ def run_monitoring(job, jobrun_id, measure, measure_id):
     print("Las mediciones tienen una duración de: ", job["t"])
     print(f'Se realizan mediciones cada {(job["t"] + job["d"])} segundos')
     # Obtener datos para ejecutar análisis
-    datos_segmento = (
-        mongo_inercial.db[f'lecturas{job["n"]}']
+    datos_segmento = list(
+        mongo_inercial.db[f"lecturas{job['n']}"]
         .find({"_id": {"$gte": measure.si, "$lte": measure.so}})
         .sort("_id", 1)
     )
+
+    # Calcular vector de características y almacenarlo
+    vector = feature_engineering.generar_feature_vector(datos_segmento)
+    fv = FeatureVector(measure_id, vector)
+    mongo.db.feature_vectors.insert_one(vars(fv))
 
     analisis = inference_service.run_inference(datos_segmento)
 
