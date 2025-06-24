@@ -274,27 +274,33 @@ def get_lecturas(node, start, pag, size):
 
 
 def run_monitoring(job, jobrun_id, measure, measure_id):
+    # Debugging output
     print("El id del job es: ", job["_id"])
     print("El id del jobrun es: ", jobrun_id)
     print("Los datos provienen del nodo: ", job["n"])
     print("Las mediciones tienen una duración de: ", job["t"])
     print(f'Se realizan mediciones cada {(job["t"] + job["d"])} segundos')
-    # Obtener datos para ejecutar análisis
+
+    # 1. Obtener datos para ejecutar análisis
     datos_segmento = list(
         mongo_inercial.db[f"lecturas{job['n']}"]
         .find({"_id": {"$gte": measure.si, "$lte": measure.so}})
         .sort("_id", 1)
     )
 
-    # Calcular vector de características y almacenarlo
+    # 2. Calcular vector de características y almacenarlo en bd
     vector = feature_engineering.generar_feature_vector(datos_segmento)
     fv = FeatureVector(measure_id, vector)
+
+    # 3. Generar predicción de vector de características
+
+    # 4. Clasificación del vector de características fv y future_fv
+
+    # 5. Check por alertas y de haber, se registra en la measure.
+    ## mongo.db.measures.update_one({"_id": measure_id}, {"$set": {"ai": str(analisis)}})
+
+    # 6. Analizar situaciones en que se guarda el vector de características
     mongo.db.feature_vectors.insert_one(vars(fv))
-
-    analisis = inference_service.run_inference(datos_segmento)
-
-    # Insertar análisis en la measure
-    mongo.db.measures.update_one({"_id": measure_id}, {"$set": {"ai": str(analisis)}})
 
 
 def run_learning(job, jobrun_id, measure, measure_id):
