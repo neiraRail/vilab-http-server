@@ -72,3 +72,11 @@ class FeatureVector:
     def __init__(self, measure_id, vector):
         self.m = measure_id
         self.v = vector.tolist() if isinstance(vector, np.ndarray) else list(vector)
+
+
+class Clase:
+    """Representa el resultado de una clasificación."""
+
+    def __init__(self, identificador: int, descripcion: str):
+        self.id = identificador
+        self.descripcion = descripcion
