@@ -6,7 +6,7 @@ from models import Job, JobRun, Measure, Marca, FeatureVector
 from os import environ as env
 from bson import ObjectId
 import time
-from services import inference_service, feature_engineering
+from services import feature_engineering, old_inference
 from pymongo import ASCENDING
 
 mongohost = env.get("MONGO_HOST", "localhost")
@@ -293,6 +293,7 @@ def run_monitoring(job, jobrun_id, measure, measure_id):
     fv = FeatureVector(measure_id, vector)
 
     # 3. Generar predicción de vector de características
+
 
     # 4. Clasificación del vector de características fv y future_fv
 
