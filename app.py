@@ -6,7 +6,7 @@ from models import Job, JobRun, Measure, Marca, FeatureVector
 from os import environ as env
 from bson import ObjectId
 import time
-from services import feature_engineering, old_inference
+from services import feature_engineering, prediction_service, classification_service
 from pymongo import ASCENDING
 
 mongohost = env.get("MONGO_HOST", "localhost")
@@ -274,13 +274,6 @@ def get_lecturas(node, start, pag, size):
 
 
 def run_monitoring(job, jobrun_id, measure, measure_id):
-    # Debugging output
-    print("El id del job es: ", job["_id"])
-    print("El id del jobrun es: ", jobrun_id)
-    print("Los datos provienen del nodo: ", job["n"])
-    print("Las mediciones tienen una duración de: ", job["t"])
-    print(f'Se realizan mediciones cada {(job["t"] + job["d"])} segundos')
-
     # 1. Obtener datos para ejecutar análisis
     datos_segmento = list(
         mongo_inercial.db[f"lecturas{job['n']}"]
@@ -293,12 +286,35 @@ def run_monitoring(job, jobrun_id, measure, measure_id):
     fv = FeatureVector(measure_id, vector)
 
     # 3. Generar predicción de vector de características
-
+    future_fv = prediction_service.run_prediction(vector)
 
     # 4. Clasificación del vector de características fv y future_fv
+    clase = classification_service.run_classification(fv)
+    clase_future = classification_service.run_classification(future_fv)
 
     # 5. Check por alertas y de haber, se registra en la measure.
-    ## mongo.db.measures.update_one({"_id": measure_id}, {"$set": {"ai": str(analisis)}})
+    analisis = []
+    # 5.1 Check si clase actual es diferente a la clase normal (0)
+    if clase.value != 0:
+        analisis.append(
+            {"tipo": "Alerta", "mensaje": f"Clase actual {clase.value} ({clase.description})"}
+        )
+    else:
+        analisis.append(
+            {"tipo": "Info", "mensaje": f"Clase actual {clase.value} ({clase.description}) es normal"}
+        )
+    # 5.2 Check si clase futura es diferente a la clase normal (0)
+    if clase_future.value != 0:
+        analisis.append(
+            {"tipo": "Alerta", "mensaje": f"Clase futura {clase_future.value} ({clase_future.description})"}
+        )
+    # 5.3 Check si clase actual es diferente a la clase futura
+    if clase.value != clase_future.value:
+        analisis.append(
+            {"tipo": "Alerta", "mensaje": f"Clase actual {clase.value} ({clase.description}) es diferente a la clase futura {clase_future.value} ({clase_future.description})"}
+        )
+
+    mongo.db.measures.update_one({"_id": measure_id}, {"$set": {"ai": analisis}})
 
     # 6. Analizar situaciones en que se guarda el vector de características
     mongo.db.feature_vectors.insert_one(vars(fv))
