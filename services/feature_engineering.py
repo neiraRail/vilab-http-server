@@ -178,7 +178,7 @@ def reduce_dimensionality(features: np.ndarray, pca_uri: str = "models:/feature_
 # ---------------------------------------------------------------------------
 
 
-def extract_features(window: np.ndarray) -> np.ndarray:
+def extract_features(window: list) -> np.ndarray:
     """Generate a 256-length feature vector from a ``(500, 6)`` window.
 
     Parameters
@@ -191,6 +191,8 @@ def extract_features(window: np.ndarray) -> np.ndarray:
     np.ndarray
         Vector of 256 features obtained after PCA projection.
     """
+    window = np.asarray(window, dtype=float)
+
     if window.shape != (500, 6):
         raise ValueError("window must have shape (500, 6)")
 
@@ -199,20 +201,3 @@ def extract_features(window: np.ndarray) -> np.ndarray:
     env_f = extract_envelope_features(window)
     full_features = np.concatenate([time_f, freq_f, env_f])
     return reduce_dimensionality(full_features)
-
-
-# ---------------------------------------------------------------------------
-# Backwards compatibility helper
-# ---------------------------------------------------------------------------
-
-
-def generar_feature_vector(datos_segmento: Iterable[dict]) -> np.ndarray:
-    """Legacy wrapper to compute simple feature vector from raw records."""
-    import pandas as pd
-
-    df = pd.DataFrame(list(datos_segmento))
-    if "_id" in df:
-        df.drop(columns=["_id"], inplace=True)
-    if df.empty:
-        return np.array([])
-    return df.mean().to_numpy()

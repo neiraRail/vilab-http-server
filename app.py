@@ -282,38 +282,40 @@ def run_monitoring(job, jobrun_id, measure, measure_id):
     )
 
     # 2. Calcular vector de características y almacenarlo en bd
-    vector = feature_engineering.generar_feature_vector(datos_segmento)
+    vector = feature_engineering.extract_features(datos_segmento)
     fv = FeatureVector(measure_id, vector)
 
     # 3. Generar predicción de vector de características
-    future_fv = prediction_service.run_prediction(vector)
+    # future_fv = prediction_service.run_prediction(vector)
 
     # 4. Clasificación del vector de características fv y future_fv
-    clase = classification_service.run_classification(fv)
-    clase_future = classification_service.run_classification(future_fv)
+    # clase = classification_service.run_classification(fv)
+    # clase_future = classification_service.run_classification(future_fv)
 
     # 5. Check por alertas y de haber, se registra en la measure.
     analisis = []
     # 5.1 Check si clase actual es diferente a la clase normal (0)
-    if clase.value != 0:
-        analisis.append(
-            {"tipo": "Alerta", "mensaje": f"Clase actual {clase.value} ({clase.description})"}
-        )
-    else:
-        analisis.append(
-            {"tipo": "Info", "mensaje": f"Clase actual {clase.value} ({clase.description}) es normal"}
-        )
-    # 5.2 Check si clase futura es diferente a la clase normal (0)
-    if clase_future.value != 0:
-        analisis.append(
-            {"tipo": "Alerta", "mensaje": f"Clase futura {clase_future.value} ({clase_future.description})"}
-        )
-    # 5.3 Check si clase actual es diferente a la clase futura
-    if clase.value != clase_future.value:
-        analisis.append(
-            {"tipo": "Alerta", "mensaje": f"Clase actual {clase.value} ({clase.description}) es diferente a la clase futura {clase_future.value} ({clase_future.description})"}
-        )
-
+    # if clase.value != 0:
+    #     analisis.append(
+    #         {"tipo": "Alerta", "mensaje": f"Clase actual {clase.value} ({clase.description})"}
+    #     )
+    # else:
+    #     analisis.append(
+    #         {"tipo": "Info", "mensaje": f"Clase actual {clase.value} ({clase.description}) es normal"}
+    #     )
+    # # 5.2 Check si clase futura es diferente a la clase normal (0)
+    # if clase_future.value != 0:
+    #     analisis.append(
+    #         {"tipo": "Alerta", "mensaje": f"Clase futura {clase_future.value} ({clase_future.description})"}
+    #     )
+    # # 5.3 Check si clase actual es diferente a la clase futura
+    # if clase.value != clase_future.value:
+    #     analisis.append(
+    #         {"tipo": "Alerta", "mensaje": f"Clase actual {clase.value} ({clase.description}) es diferente a la clase futura {clase_future.value} ({clase_future.description})"}
+    #     )
+    analisis.append(
+        {"tipo": "Info", "mensaje": str(vector)}
+    )
     mongo.db.measures.update_one({"_id": measure_id}, {"$set": {"ai": analisis}})
 
     # 6. Analizar situaciones en que se guarda el vector de características
