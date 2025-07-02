@@ -213,6 +213,37 @@ def get_jobruns(job_id):
         result.append(jobrun)
     return jsonify(result)
 
+@app.route("/jobrun/<jobrun_id>", methods=["DELETE"])
+def delete_jobrun(jobrun_id):
+    jobrun = mongo.db.jobruns.find_one({"_id": ObjectId(jobrun_id)})
+    if not jobrun:
+        return {"error": "Jobrun no encontrado"}, 404
+
+    # Find all measures associated with the jobrun
+    measures = list(mongo.db.measures.find({"j": ObjectId(jobrun_id)}))
+
+    for measure in measures:
+        # Remove feature vectors linked to the measure
+        mongo.db.feature_vectors.delete_many({"m": measure["_id"]})
+
+        # Remove inertial data segment associated with the measure
+        if measure.get("si") and measure.get("so"):
+            mongo_inercial.db[f"lecturas{measure['n']}"]\
+                .delete_many({"_id": {"$gte": measure["si"], "$lte": measure["so"]}})
+        elif measure.get("si"):
+            mongo_inercial.db[f"lecturas{measure['n']}"]\
+                .delete_one({"_id": measure["si"]})
+        elif measure.get("so"):
+            mongo_inercial.db[f"lecturas{measure['n']}"]\
+                .delete_one({"_id": measure["so"]})
+
+        # Finally remove the measure itself
+        mongo.db.measures.delete_one({"_id": measure["_id"]})
+
+    # Remove jobrun entry
+    mongo.db.jobruns.delete_one({"_id": ObjectId(jobrun_id)})
+
+    return {"message": "Jobrun y datos asociados eliminados exitosamente"}, 200
 
 # get measures on path "/measure/<jobrunid>"
 @app.route("/measure/<jobrun_id>", methods=["GET"])
