@@ -235,5 +235,4 @@ def extract_features(window: np.ndarray) -> np.ndarray:
     freq_f = extract_freq_features(window)
     env_f = extract_envelope_features(window)
     full_features = np.concatenate([time_f, freq_f, env_f])
-    # return reduce_dimensionality(full_features)
-    return full_features  # For testing purposes, return full features without PCA
+    return reduce_dimensionality(full_features)
