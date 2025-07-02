@@ -21,6 +21,11 @@ import mlflow
 from typing import Iterable
 
 try:
+    from sklearn.preprocessing import StandardScaler  # type: ignore
+except Exception:  # pragma: no cover - sklearn may not be installed
+    StandardScaler = None  # type: ignore
+
+try:
     from sklearn.decomposition import PCA  # type: ignore
 except Exception as err:  # pragma: no cover - sklearn may not be installed
     PCA = None  # type: ignore
@@ -50,6 +55,35 @@ def _skewness(x: np.ndarray) -> float:
 # Feature extraction helpers
 # ---------------------------------------------------------------------------
 
+def scale_window(
+    window: np.ndarray, scaler_uri: str = "models:/signal_scaler/1"
+) -> np.ndarray:
+    """Scale the raw signal window using a pre-trained ``StandardScaler``.
+
+    The scaler is loaded from MLflow so the normalization parameters can be
+    updated without modifying this code.
+
+    Parameters
+    ----------
+    window : np.ndarray
+        Input array of shape ``(100, 6)`` with raw signals.
+    scaler_uri : str
+        Location of the scaler in MLflow.
+
+    Returns
+    -------
+    np.ndarray
+        Scaled window with the same shape as ``window``.
+    """
+    if StandardScaler is None:
+        raise RuntimeError("scikit-learn is required for window scaling")
+    try:
+        scaler: StandardScaler = mlflow.sklearn.load_model(scaler_uri)  # type: ignore
+    except Exception as e:  # pragma: no cover - depends on external service
+        raise RuntimeError(
+            "StandardScaler model could not be loaded from MLflow. Register and train it first."
+        ) from e
+    return scaler.transform(window)
 
 def extract_time_features(window: np.ndarray) -> np.ndarray:
     """Extract time domain features per axis.
@@ -193,6 +227,9 @@ def extract_features(window: np.ndarray) -> np.ndarray:
     """
     if window.shape != (100, 6):
         raise ValueError("window must have shape (100, 6)", window.shape)
+    
+    # Apply static normalization to the input window
+    window = scale_window(window)
 
     time_f = extract_time_features(window)
     freq_f = extract_freq_features(window)
