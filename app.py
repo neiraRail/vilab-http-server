@@ -273,6 +273,8 @@ def get_lecturas(node, start, pag, size):
 # Rutas de Análisis
 
 
+import numpy as np
+
 def run_monitoring(job, jobrun_id, measure, measure_id):
     # 1. Obtener datos para ejecutar análisis
     datos_segmento = list(
@@ -280,9 +282,15 @@ def run_monitoring(job, jobrun_id, measure, measure_id):
         .find({"_id": {"$gte": measure.si, "$lte": measure.so}})
         .sort("_id", 1)
     )
+    
+    array_segmento = np.array([
+        [doc.get('ax', 0), doc.get('ay', 0), doc.get('az', 0),
+        doc.get('gx', 0), doc.get('gy', 0), doc.get('gz', 0)]
+        for doc in datos_segmento[:100]
+    ])
 
     # 2. Calcular vector de características y almacenarlo en bd
-    vector = feature_engineering.extract_features(datos_segmento)
+    vector = feature_engineering.extract_features(array_segmento)
     fv = FeatureVector(measure_id, vector)
 
     # 3. Generar predicción de vector de características
