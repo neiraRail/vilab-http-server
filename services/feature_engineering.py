@@ -186,17 +186,11 @@ def extract_envelope_features(window: np.ndarray, smooth: int = 10) -> np.ndarra
     return np.asarray(feats, dtype=float)
 
 
-def _normalize(features: np.ndarray) -> np.ndarray:
-    mean = features.mean()
-    std = features.std() + 1e-8
-    return (features - mean) / std
-
-
 def reduce_dimensionality(features: np.ndarray, pca_uri: str = "models:/feature_pca/1") -> np.ndarray:
     """Normalize and project features using a pre-trained PCA model."""
     if PCA is None:
         raise RuntimeError("scikit-learn is required for PCA transformation")
-    x = _normalize(features).reshape(1, -1)
+    x = features.reshape(1, -1)
     try:
         pca_model: PCA = mlflow.sklearn.load_model(pca_uri)  # type: ignore
     except Exception as e:

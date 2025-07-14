@@ -130,8 +130,8 @@ def run_job(job):
             # llamada a servicios de IA dependiendo de las flags
             if job.get("ai_monitoreo", 0) == 1:
                 executor.submit(run_monitoring, job, jobrun_id, measure, measure_id)
-            if job.get("ai_aprendizaje", 0) == 1:
-                executor.submit(run_learning, job, jobrun_id, measure, measure_id)
+            # if job.get("ai_aprendizaje", 0) == 1:
+            #     executor.submit(run_learning, job, jobrun_id, measure, measure_id)
 
         time.sleep(job["d"])
         i += 1
@@ -361,10 +361,25 @@ def run_monitoring(job, jobrun_id, measure, measure_id):
     mongo.db.feature_vectors.insert_one(vars(fv))
 
 
-def run_learning(job, jobrun_id, measure, measure_id):
-    """Proceso de aprendizaje basado en IA (placeholder)."""
+def run_initial_learning(job, jobrun_id, measure, measure_id):
+    """Proceso de aprendizaje inicial basado en IA"""
     print("Proceso de aprendizaje para el job", job["_id"])
-    # Aquí se ejecutaría la lógica de aprendizaje en el futuro
+    # Este flujo inicial tiene como objetivo:
+    # 1. Entrenar un modelo PCA con los datos de un JobRun y registrarlo en MLflow.
+    # 2. Etnrenar un scaler con los datos de un JobRun y registrarlo en MLflow.
+    # 3. Extraer características de los datos del JobRun y almacenarlas en la feature store.
+    # 4. Entrenar un predictor con las ventanas de características y registrarlo en MLflow.
+
+
+def run_continuous_learning(job, jobrun_id, measure, measure_id):
+    """Proceso de aprendizaje continuo basado en IA"""
+    print("Proceso de aprendizaje continuo para el job", job["_id"])
+    # Este flujo continuo tiene como objetivo:
+    # 1. Recopila vectores anomalos tanto reales como predichos.
+    # 2. Entrena un nuevo clasificador con los vectores anómalos y los vectores normales etiquetados como "Anomalía N"
+    # 3. Registra el nuevo clasificador en MLflow.
+
+
 
 
 if __name__ == "__main__":
