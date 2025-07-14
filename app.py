@@ -6,7 +6,7 @@ from models import Job, JobRun, Measure, Marca, FeatureVector
 from os import environ as env
 from bson import ObjectId
 import time
-from services import feature_engineering, prediction_service, classification_service
+from services import feature_engineering, inference_service
 from pymongo import ASCENDING
 
 mongohost = env.get("MONGO_HOST", "localhost")
@@ -326,7 +326,7 @@ def run_monitoring(job, jobrun_id, measure, measure_id):
 
     # 3. Clasificar el vector de características y almacenarlo
     try:
-        clase = classification_service.run_classification(vector.reshape(1, -1))
+        clase = inference_service.run_classification(vector.reshape(1, -1))
         class_pred = clase.id
     except Exception:
         class_pred = None
@@ -334,10 +334,10 @@ def run_monitoring(job, jobrun_id, measure, measure_id):
     fv = FeatureVector(measure_id, vector, class_pred=class_pred)
 
     # 4. Generar predicción de vector de características
-    # future_fv = prediction_service.run_prediction(vector)
+    # future_fv = inference_service.run_prediction(vector)
 
     # 5. Clasificación del vector de características fv y future_fv
-    # clase_future = classification_service.run_classification(future_fv)
+    # clase_future = inference_service.run_classification(future_fv)
 
 
 
