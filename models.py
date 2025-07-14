@@ -67,11 +67,24 @@ class FeatureVector:
     Para almacenar ``vector`` en MongoDB se recomienda serializarlo a una
     lista mediante ``numpy.ndarray.tolist``. Esto mantiene la compatibilidad
     con BSON y permite reconstruir el arreglo original al leerlo.
+
+        Parameters
+    ----------
+    measure_id : ObjectId
+        Identificador de la medición a la que pertenece el vector.
+    vector : np.ndarray | Iterable
+        Vector de características de la medición.
+    class_pred : int | None, optional
+        Clase asignada por el clasificador, si existe.
+    class_real : int | None, optional
+        Clase real asignada manualmente. Por defecto ``None``.
     """
 
-    def __init__(self, measure_id, vector):
+    def __init__(self, measure_id, vector, class_pred=None, class_real=None):
         self.m = measure_id
         self.v = vector.tolist() if isinstance(vector, np.ndarray) else list(vector)
+        self.class_pred = class_pred
+        self.class_real = class_real
 
 
 class Clase:

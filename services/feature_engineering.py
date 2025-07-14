@@ -56,7 +56,7 @@ def _skewness(x: np.ndarray) -> float:
 # ---------------------------------------------------------------------------
 
 def scale_window(
-    window: np.ndarray, scaler_uri: str = "models:/signal_scaler/1"
+    window: np.ndarray, scaler_uri: str = "models:/signal_scaler"
 ) -> np.ndarray:
     """Scale the raw signal window using a pre-trained ``StandardScaler``.
 
@@ -186,7 +186,7 @@ def extract_envelope_features(window: np.ndarray, smooth: int = 10) -> np.ndarra
     return np.asarray(feats, dtype=float)
 
 
-def reduce_dimensionality(features: np.ndarray, pca_uri: str = "models:/feature_pca/1") -> np.ndarray:
+def reduce_dimensionality(features: np.ndarray, pca_uri: str = "models:/feature_pca") -> np.ndarray:
     """Normalize and project features using a pre-trained PCA model."""
     if PCA is None:
         raise RuntimeError("scikit-learn is required for PCA transformation")
