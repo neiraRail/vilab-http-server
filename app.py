@@ -6,7 +6,7 @@ from models import Job, JobRun, Measure, Marca, FeatureVector
 from os import environ as env
 from bson import ObjectId
 import time
-from services import feature_engineering, inference_service
+from services import feature_engineering, inference_service, training_service
 from pymongo import ASCENDING
 
 mongohost = env.get("MONGO_HOST", "localhost")
@@ -85,6 +85,7 @@ def stop_nodo(nodo_id):
 
 def run_job(job):
     # Create jobrun in mongodb
+    print(job)
     jobrun = JobRun(job, time.time())
     jobrun_id = mongo.db.jobruns.insert_one(vars(jobrun)).inserted_id
     i = 0
@@ -130,13 +131,13 @@ def run_job(job):
             # llamada a servicios de IA dependiendo de las flags
             if job.get("ai_monitoreo", 0) == 1:
                 executor.submit(run_monitoring, job, jobrun_id, measure, measure_id)
-            # if job.get("ai_aprendizaje", 0) == 1:
-            #     executor.submit(run_learning, job, jobrun_id, measure, measure_id)
 
         time.sleep(job["d"])
         i += 1
 
     mongo.db.jobs.update_one({"_id": job["_id"]}, {"$set": {"a": 0}})
+    if job.get("ai_aprendizaje", 0) == 1:
+        executor.submit(run_initial_learning, job, jobrun_id)
 
 
 @app.route("/job", methods=["GET"])
@@ -307,6 +308,7 @@ def get_lecturas(node, start, pag, size):
 import numpy as np
 
 def run_monitoring(job, jobrun_id, measure, measure_id):
+    print("Iniciando monitoreo para la medida", measure_id)
     # 1. Obtener datos para ejecutar análisis
     datos_segmento = list(
         mongo_inercial.db[f"lecturas{job['n']}"]
@@ -317,27 +319,37 @@ def run_monitoring(job, jobrun_id, measure, measure_id):
     array_segmento = np.array([
         [doc.get('ax', 0), doc.get('ay', 0), doc.get('az', 0),
         doc.get('gx', 0), doc.get('gy', 0), doc.get('gz', 0)]
-        for doc in datos_segmento[:100]
+        for doc in datos_segmento[:500]
     ])
 
     # 2. Calcular vector de características y almacenarlo en bd
+    print("Calculando vector de características para la medida", measure_id)
     vector = feature_engineering.extract_features(array_segmento)
-    fv = FeatureVector(measure_id, vector)
 
+    # print("Clasificando vector...")
     # 3. Clasificar el vector de características y almacenarlo
-    try:
-        clase = inference_service.run_classification(vector.reshape(1, -1))
-        class_pred = clase.id
-    except Exception:
-        class_pred = None
+    # try:
+    #     clase = inference_service.run_classification(vector.reshape(1, -1))
+    #     class_pred = clase.id
+    #     print("Clase actual:", class_pred)
+    # except Exception:
+    #     class_pred = None
 
-    fv = FeatureVector(measure_id, vector, class_pred=class_pred)
 
     # 4. Generar predicción de vector de características
     # future_fv = inference_service.run_prediction(vector)
 
     # 5. Clasificación del vector de características fv y future_fv
     # clase_future = inference_service.run_classification(future_fv)
+
+    # 6. Analizar anomalia
+    print("Detectando anomalías en el vector de características...")
+    anomalia = inference_service.run_anomaly_detection(vector.reshape(1, -1))
+    print("Anomalía detectada:", anomalia)
+
+    fv = FeatureVector(measure_id, vector, class_pred=anomalia)
+
+   
 
 
 
@@ -362,29 +374,85 @@ def run_monitoring(job, jobrun_id, measure, measure_id):
     #     analisis.append(
     #         {"tipo": "Alerta", "mensaje": f"Clase actual {clase.value} ({clase.description}) es diferente a la clase futura {clase_future.value} ({clase_future.description})"}
     #     )
-    analisis.append(
-        {"tipo": "Info", "mensaje": str(vector)}
-    )
+    if anomalia == -1:
+        analisis.append(
+            {"tipo": "Alerta", "mensaje": f"Anomalía detectada en la medida {measure_id}"}
+        )
+    else:
+        analisis.append(
+            {"tipo": "Info", "mensaje": f"No se detectaron anomalías en la medida {measure_id}"}
+        )
+
+    # analisis.extend([
+    #     {"tipo": "Info", "mensaje": str("Clase actual: Normal - 87% de probabilidad")},
+    #     {"tipo": "Info", "mensaje": str("Clase futura: Normal - 90% de probabilidad")}]
+    # )
     mongo.db.measures.update_one({"_id": measure_id}, {"$set": {"ai": analisis}})
 
     # 7. Analizar situaciones en que se guarda el vector de características
-    mongo.db.feature_vectors.insert_one(vars(fv))
+    # mongo.db.feature_vectors.insert_one(vars(fv))
 
     # 8. Borrar datos crudos utilizados en el análisis para liberar espacio
-    mongo_inercial.db[f"lecturas{job['n']}"].delete_many(
-        {"_id": {"$gte": measure.si, "$lte": measure.so}}
-    )
+    # mongo_inercial.db[f"lecturas{job['n']}"].delete_many(
+    #     {"_id": {"$gte": measure.si, "$lte": measure.so}}
+    # )
 
 
-def run_initial_learning(job, jobrun_id, measure, measure_id):
+def run_initial_learning(job, jobrun_id):
     """Proceso de aprendizaje inicial basado en IA"""
     print("Proceso de aprendizaje para el job", job["_id"])
     # Este flujo inicial tiene como objetivo:
+
+    jobrun_id = str(jobrun_id)
     # 1. Entrenar un modelo PCA con los datos de un JobRun y registrarlo en MLflow.
     # 2. Etnrenar un scaler con los datos de un JobRun y registrarlo en MLflow.
-    # 3. Extraer características de los datos del JobRun y almacenarlas en la feature store.
-    # 4. Entrenar un predictor con las ventanas de características y registrarlo en MLflow.
+    print("Entrenando scaler...")
+    training_service.train_and_save_scaler(jobrun_id, mongohost)
+    print("PCA entrenado y guardado en MLflow")
+    print("Entrenando PCA...")
+    training_service.train_and_save_pca(jobrun_id, mongohost)
+    print("PCA entrenado y guardado en MLflow")
+    print("Entrenando detector de anomalías...")
+    training_service.train_and_save_anomaly_detector(jobrun_id, mongohost)
+    print("Detector de anomalías entrenado y guardado en MLflow")
+    print("Entrenando predictor...")
+    training_service.train_and_save_predictor(jobrun_id, mongohost)
+    print("Predictor entrenado y guardado en MLflow")
 
+    # Registrar clase inicial "Normal"
+    mongo.db.classes.update_one(
+        {"_id": 1}, {"$setOnInsert": {"descripcion": "Normal"}}, upsert=True
+    )
+
+    # 3. Extraer características de los datos del JobRun y almacenarlas en la feature store.
+    # Extraer vectores de características y guardarlos etiquetados como normales
+    measures = mongo.db.measures.find({"j": ObjectId(jobrun_id)})
+    for mdoc in measures:
+        datos = list(
+            mongo_inercial.db[f"lecturas{mdoc['n']}"]
+            .find({"_id": {"$gte": mdoc["si"], "$lte": mdoc["so"]}})
+            .sort("_id", 1)
+        )
+        segmento = np.array(
+            [
+                [
+                    d.get("ax", 0.0),
+                    d.get("ay", 0.0),
+                    d.get("az", 0.0),
+                    d.get("gx", 0.0),
+                    d.get("gy", 0.0),
+                    d.get("gz", 0.0),
+                ]
+                for d in datos[:500]
+            ]
+        )
+        if segmento.shape != (500, 6):
+            continue
+        vector = feature_engineering.extract_features(segmento)
+        fv = FeatureVector(mdoc["_id"], vector, class_real=1)
+        mongo.db.feature_vectors.insert_one(vars(fv))
+
+    # 4. Entrenar un predictor con las ventanas de características y registrarlo en MLflow.
 
 def run_continuous_learning(job, jobrun_id, measure, measure_id):
     """Proceso de aprendizaje continuo basado en IA"""

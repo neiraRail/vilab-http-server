@@ -5,6 +5,8 @@ import numpy as np
 import mlflow
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.ensemble import IsolationForest
+from sklearn.linear_model import LinearRegression
 
 from .feature_engineering import (
     extract_time_features,
@@ -109,3 +111,65 @@ def train_and_save_pca(jobrun_id: str, mongo_host: str = "localhost") -> None:
         )
         mlflow.log_param("jobrun_id", jobrun_id)
         mlflow.log_param("n_components", pca.n_components_)
+
+
+
+def train_and_save_anomaly_detector(
+    jobrun_id: str, mongo_host: str = "localhost"
+) -> None:
+    """Train an IsolationForest model on PCA features and log it to MLflow."""
+    data = _load_jobrun_data(jobrun_id, mongo_host)
+    if data.size == 0:
+        raise RuntimeError("No se encontraron datos para el JobRun especificado")
+
+    scaler = mlflow.sklearn.load_model("models:/signal_scaler/1")
+    scaled = scaler.transform(data)
+    features = _compute_features(scaled)
+    if features.size == 0:
+        raise RuntimeError("No hay suficientes ventanas de datos para entrenar el modelo")
+
+    pca = mlflow.sklearn.load_model("models:/feature_pca/1")
+    projected = pca.transform(features)
+
+    detector = IsolationForest(random_state=0)
+    detector.fit(projected)
+
+    with mlflow.start_run():
+        mlflow.sklearn.log_model(
+            detector,
+            artifact_path="model",
+            registered_model_name="anomaly",
+        )
+        mlflow.log_param("jobrun_id", jobrun_id)
+
+
+def train_and_save_predictor(
+    jobrun_id: str, mongo_host: str = "localhost"
+) -> None:
+    """Train a simple feature predictor and log it to MLflow."""
+    data = _load_jobrun_data(jobrun_id, mongo_host)
+    if data.size == 0:
+        raise RuntimeError("No se encontraron datos para el JobRun especificado")
+
+    scaler = mlflow.sklearn.load_model("models:/signal_scaler/1")
+    scaled = scaler.transform(data)
+    features = _compute_features(scaled)
+    if features.shape[0] < 2:
+        raise RuntimeError("Se requieren al menos dos ventanas para entrenar el predictor")
+
+    pca = mlflow.sklearn.load_model("models:/feature_pca/1")
+    projected = pca.transform(features)
+
+    X = projected[:-1]
+    y = projected[1:]
+
+    model = LinearRegression()
+    model.fit(X, y)
+
+    with mlflow.start_run():
+        mlflow.sklearn.log_model(
+            model,
+            artifact_path="model",
+            registered_model_name="prediction",
+        )
+        mlflow.log_param("jobrun_id", jobrun_id)

@@ -56,7 +56,7 @@ def _skewness(x: np.ndarray) -> float:
 # ---------------------------------------------------------------------------
 
 def scale_window(
-    window: np.ndarray, scaler_uri: str = "models:/signal_scaler"
+    window: np.ndarray, scaler_uri: str = "models:/signal_scaler/2"
 ) -> np.ndarray:
     """Scale the raw signal window using a pre-trained ``StandardScaler``.
 
@@ -66,7 +66,7 @@ def scale_window(
     Parameters
     ----------
     window : np.ndarray
-        Input array of shape ``(100, 6)`` with raw signals.
+        Input array of shape ``(500, 6)`` with raw signals.
     scaler_uri : str
         Location of the scaler in MLflow.
 
@@ -186,7 +186,7 @@ def extract_envelope_features(window: np.ndarray, smooth: int = 10) -> np.ndarra
     return np.asarray(feats, dtype=float)
 
 
-def reduce_dimensionality(features: np.ndarray, pca_uri: str = "models:/feature_pca") -> np.ndarray:
+def reduce_dimensionality(features: np.ndarray, pca_uri: str = "models:/feature_pca/1") -> np.ndarray:
     """Normalize and project features using a pre-trained PCA model."""
     if PCA is None:
         raise RuntimeError("scikit-learn is required for PCA transformation")
@@ -219,9 +219,9 @@ def extract_features(window: np.ndarray) -> np.ndarray:
     np.ndarray
         Vector of 256 features obtained after PCA projection.
     """
-    if window.shape != (100, 6):
-        raise ValueError("window must have shape (100, 6)", window.shape)
-    
+    if window.shape != (500, 6):
+        raise ValueError("window must have shape (500, 6)", window.shape)
+
     # Apply static normalization to the input window
     window = scale_window(window)
 
