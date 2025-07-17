@@ -2,7 +2,11 @@ from typing import List
 from pymongo import MongoClient
 from bson import ObjectId
 import numpy as np
+import pandas as pd
 import mlflow
+import torch
+from torch import nn
+from torch.utils.data import DataLoader, random_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.ensemble import IsolationForest
@@ -13,6 +17,10 @@ from .feature_engineering import (
     extract_freq_features,
     extract_envelope_features,
 )
+
+from reusable.modelos import CNN_Autoencoder
+from reusable.datasets import TimeSeriesDataset
+from reusable.train_test_and_save import train_ae, EarlyStopping
 
 WINDOW_SIZE = 100
 
@@ -173,3 +181,95 @@ def train_and_save_predictor(
             registered_model_name="prediction",
         )
         mlflow.log_param("jobrun_id", jobrun_id)
+
+
+
+def train_and_save_cnnae(
+    jobrun_id: str,
+    mongo_host: str = "localhost",
+    latent_size: int = 32,
+    epochs: int = 10,
+    batch_size: int = 32,
+) -> None:
+    """Train a CNN Autoencoder on JobRun windows and log it to MLflow.
+
+    Parameters
+    ----------
+    jobrun_id : str
+        Identifier of the JobRun used for training.
+    mongo_host : str, optional
+        MongoDB host where the inertial data is stored.
+    latent_size : int, optional
+        Dimension of the latent space of the autoencoder.
+    epochs : int, optional
+        Number of training epochs.
+    batch_size : int, optional
+        Batch size used for training.
+    """
+
+    data = _load_jobrun_data(jobrun_id, mongo_host)
+    if data.size == 0:
+        raise RuntimeError("No se encontraron datos para el JobRun especificado")
+
+    scaler = mlflow.sklearn.load_model("models:/signal_scaler/1")
+    scaled = scaler.transform(data)
+
+    df = pd.DataFrame(
+        scaled, columns=["ax", "ay", "az", "gx", "gy", "gz"]
+    )
+
+    dataset = TimeSeriesDataset(df, WINDOW_SIZE)
+    if len(dataset) == 0:
+        raise RuntimeError(
+            "No hay suficientes ventanas de datos para entrenar el autoencoder"
+        )
+
+    train_size = int(0.8 * len(dataset))
+    test_size = len(dataset) - train_size
+    train_ds, test_ds = random_split(
+        dataset, [train_size, test_size], generator=torch.Generator().manual_seed(0)
+    )
+
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_ds, batch_size=batch_size)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = CNN_Autoencoder(latent_size).to(device)
+
+    loss_fn = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    early_stopping = EarlyStopping(patience=5, min_delta=1e-4)
+
+    for epoch in range(epochs):
+        train_loss, stop = train_ae(
+            model,
+            train_loader,
+            loss_fn,
+            optimizer,
+            early_stopping=early_stopping,
+            device=device,
+        )
+
+        test_loss = 0.0
+        model.eval()
+        with torch.no_grad():
+            for batch in test_loader:
+                X = batch.to(device)
+                pred = model(X)
+                test_loss += loss_fn(pred, X).item()
+        test_loss /= len(test_loader)
+
+        if stop:
+            break
+
+    with mlflow.start_run():
+        mlflow.pytorch.log_model(
+            model,
+            artifact_path="model",
+            registered_model_name="anomaly",
+        )
+        mlflow.log_param("jobrun_id", jobrun_id)
+        mlflow.log_param("latent_size", latent_size)
+        mlflow.log_param("epochs", epoch + 1)
+        mlflow.log_metric("final_train_loss", float(train_loss))
+        mlflow.log_metric("final_test_loss", float(test_loss))
